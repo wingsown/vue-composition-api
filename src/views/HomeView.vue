@@ -1,42 +1,44 @@
 <template>
   <div class="home">
     <h1>Home</h1>
-    <input type="text" v-model="search">
-    <p>Search term - {{ search }}</p>
-    <div v-for="name in matchingNames" :key="name">
-      {{ name }}
+    <div v-if="error">{{ error }}</div>
+    <div v-if="posts.length">
+      <PostList :posts="posts"/>
     </div>
-    <button @click="handleClick">Stop watching</button>
+    <div v-else>Loading...</div>
   </div>
 </template>
 
 <script>
 import { ref, computed } from '@vue/reactivity'
-import { watch, watchEffect } from '@vue/runtime-core'
+import PostList from '../components/PostList.vue'
 
 
 export default {
-  name: 'HomeView',
-  setup() {
-    const search = ref('')
-    const names = ref(['mario', 'yoshi', 'luigi', 'wilson', 'jeffrey', 'buena', 'pogi'])
+    name: "HomeView",
+    components: { PostList },
+    setup() {
+        const posts = ref([]);
+        const error = ref(null);
 
-    const stopWatch = watch(search, () => {
-      console.log('watch function ran');
-    })
+        const load = async () => {
+          try {
+            let data = await fetch('http://localhost:3000/posts')
+            if (!data.ok) {
+              throw Error("No data available")
+            }
 
-    const stopEffect = watchEffect(() => {
-      console.log('watch effect function ran', search.value)
-    })
-    const matchingNames = computed(() => {
-      return names.value.filter(name => name.includes(search.value))
-    })
+            posts.value = await data.json()
+          }
+          catch (err) {
+            error.value = err.message
+            console.log(error.value)
+          }
+        }
 
-    const handleClick = () => {
-      stopWatch()
-      stopEffect()
-    }
-    return { names, search, matchingNames, handleClick }
-  },
+       load();
+
+        return { posts, error };
+    },
 }
 </script>
